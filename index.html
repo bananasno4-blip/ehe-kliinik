@@ -401,7 +401,7 @@ topics.addEventListener("click", e => {
   if (!matchMedia("(min-width:901px)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const img = hero.querySelector("img"), cv = hero.querySelector(".hero-gl");
   const gl = cv.getContext("webgl", {premultipliedAlpha:false}); if (!gl) return;
-  const W0 = 2528, H0 = 1696, CX = 1251, CY = 651, R = 370, AMP = 0.06;
+  const W0 = 2528, H0 = 1696, CX = 1251, CY = 651, R = 370, AMP = 0.055;
   const STEM = Math.atan2(880 - 651, 1700 - 1251);
   const vs = "attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;v.y=1.-v.y;gl_Position=vec4(p,0,1);}";
   // langevarju vari: pildil sees, varjukaart eraldi; liigub karvadega sama pöördega, maapinnale projitseeritult
@@ -467,7 +467,7 @@ void main(){
     // sama mis img: object-fit:cover, object-position:60% 35%
     const a = w / h; let vw, vh, x0, y0;
     if (a > W0 / H0) { vw = W0; vh = W0 / a; x0 = 0; y0 = .35 * (H0 - vh); } else { vh = H0; vw = H0 * a; y0 = 0; x0 = .6 * (W0 - vw); }
-    gl.uniform4f(uView, x0, y0, vw, vh); gl.uniform1f(uT, ms / 1000);
+    gl.uniform4f(uView, x0, y0, vw, vh); gl.uniform1f(uT, ms / 1000 * .805);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     requestAnimationFrame(frame);
   }
