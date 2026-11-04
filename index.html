@@ -404,18 +404,35 @@ topics.addEventListener("click", e => {
   const W0 = 2528, H0 = 1696, CX = 1251, CY = 651, R = 370, AMP = 0.06;
   const STEM = Math.atan2(880 - 651, 1700 - 1251);
   const vs = "attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;v.y=1.-v.y;gl_Position=vec4(p,0,1);}";
-  const fs = `precision highp float;varying vec2 v;uniform sampler2D tex;uniform vec4 view;uniform float t;
+  // langevarju vari: pildil sees, varjukaart eraldi; liigub karvadega sama pöördega, maapinnale projitseeritult
+  const SH = {tx:800, ty:820, k:.5, d:.32, box:[440, 671, 582, 232], kmax:.15};
+  const fs = `precision highp float;varying vec2 v;uniform sampler2D tex,ktex;uniform vec4 view;uniform float t;
 const vec2 C=vec2(${CX}.,${CY}.);const float R=${R}.;const vec2 S=vec2(${W0}.,${H0}.);
-void main(){
-  vec2 px=view.xy+v*view.zw;vec2 d=px-C;float rn=length(d)/R;float ang=atan(d.y,d.x);
+const vec2 T=vec2(${SH.tx}.,${SH.ty}.);const float SK=${SH.k},SD=${SH.d};const vec4 KB=vec4(${SH.box.join(".,")}.);
+const vec3 TONE=vec3(120.,85.,55.)/255.;
+float th(vec2 d){
+  float rn=length(d)/R;float ang=atan(d.y,d.x);
   float w=smoothstep(.06,.3,rn)*(1.-smoothstep(.85,1.2,rn));
   float da=abs(mod(ang-${STEM.toFixed(4)}+3.14159,6.28318)-3.14159);
   w*=smoothstep(.16,.42,da);
-  w*=1.-smoothstep(${CY + 95}.,${CY + 165}.,px.y);
-  w*=smoothstep(110.,220.,length(px-vec2(800.,820.)));
+  w*=1.-smoothstep(${95}.,${165}.,d.y);
   float sway=sin(t*.78-rn*1.6)+.45*sin(t*1.31+ang*2.-rn*2.2)+.25*sin(t*2.07+ang*5.);
-  float th=${AMP}*pow(rn,1.25)*sway*w;float c=cos(-th),s=sin(-th);
-  gl_FragColor=texture2D(tex,(C+mat2(c,s,-s,c)*d)/S);
+  return ${AMP}*pow(rn,1.25)*sway*w;
+}
+vec2 turn(vec2 d){float a=-th(d);return C+mat2(cos(a),sin(a),-sin(a),cos(a))*d;}
+vec3 shade(vec2 q){
+  vec2 u=(q-KB.xy)/KB.zw;
+  float inb=step(0.,u.x)*step(0.,u.y)*step(u.x,1.)*step(u.y,1.);
+  return 1.-texture2D(ktex,u).r*${SH.kmax}*inb*(1.-TONE);
+}
+void main(){
+  vec2 px=view.xy+v*view.zw;
+  vec2 q0=turn(px-C);
+  vec2 p=vec2(px.x-SK/SD*(px.y-T.y)+C.x-T.x,(px.y-T.y)/SD+C.y);
+  vec2 pp=turn(p-C);
+  vec2 q1=vec2(pp.x-C.x+T.x+SK*(pp.y-C.y),T.y+SD*(pp.y-C.y));
+  vec3 col=texture2D(tex,q0/S).rgb/shade(q0)*shade(q1);
+  gl_FragColor=vec4(col,1.);
 }`;
   function sh(type, src){ const o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); return o; }
   const pr = gl.createProgram();
@@ -426,12 +443,17 @@ void main(){
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(pr, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const uView = gl.getUniformLocation(pr, "view"), uT = gl.getUniformLocation(pr, "t");
+  gl.uniform1i(gl.getUniformLocation(pr, "tex"), 0); gl.uniform1i(gl.getUniformLocation(pr, "ktex"), 1);
+  const kimg = new Image(); kimg.src = "data:image/jpeg;base64,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";
   let visible = true, running = false;
-  function start(){
-    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+  function texture(unit, source){
+    gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
     [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.LINEAR));
     [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE));
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, source);
+  }
+  function start(){
+    texture(0, img); texture(1, kimg);
     running = true; requestAnimationFrame(frame);
     new IntersectionObserver(e => { visible = e[0].isIntersecting; if (visible && !running) { running = true; requestAnimationFrame(frame); } }).observe(hero);
     requestAnimationFrame(() => cv.classList.add("on"));
@@ -449,7 +471,7 @@ void main(){
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     requestAnimationFrame(frame);
   }
-  if (img.complete && img.naturalWidth) start(); else img.addEventListener("load", start);
+  Promise.all([img, kimg].map(i => i.complete && i.naturalWidth ? 0 : new Promise(r => i.addEventListener("load", r)))).then(start);
 })();
 </script>
 </body>
