@@ -403,7 +403,7 @@ topics.addEventListener("click", e => {
   const img = hero.querySelector("img"), cv = hero.querySelector(".hero-gl");
   const gl = cv.getContext("webgl", {premultipliedAlpha:false}); if (!gl) return;
   const W0 = 2528, H0 = 1696, CX = 1251, CY = 651, R = 370;
-  const BEND = 20, BASE = .012;   // tippude paindumine originaali pikslites
+  const BEND = 56, BASE = .026;   // tippude paindumine originaali pikslites
   const STEM = Math.atan2(880 - 651, 1700 - 1251);
   // langevarju vari: pildil sees, varjukaart eraldi; liigub karvadega kaasa, maapinnale projitseeritult
   const SH = {tx:800, ty:820, k:.5, d:.32, box:[440, 671, 582, 232], kmax:.15};
@@ -452,15 +452,15 @@ void main(){
   // tuuleõhud: juhuslike vahedega; karvad järgivad pehme vedruna
   const rnd = (a, b) => a + Math.random() * (b - a);
   let gust = null, nextGust = 1.5, last = null;
-  const pos = {x:0, y:0}, vel = {x:0, y:0}, K = 12, DAMP = 4.5;
+  const pos = {x:0, y:0}, vel = {x:0, y:0}, K = 9, DAMP = 4.2;
   function force(t){
     if (!gust && t >= nextGust) {
       const a = Math.PI + rnd(-.35, .35);
-      gust = {t0:t, rise:rnd(1.1, 1.8), hold:rnd(.3, 1), fall:rnd(1.8, 3), p:rnd(.55, 1), dx:Math.cos(a), dy:Math.sin(a) * .6};
+      gust = {t0:t, rise:rnd(2, 3), hold:rnd(.6, 1.4), fall:rnd(3, 4.5), p:rnd(.55, 1), dx:Math.cos(a), dy:Math.sin(a) * .6};
     }
     if (!gust) return [0, 0];
     const s = t - gust.t0, e = gust.rise + gust.hold + gust.fall;
-    if (s >= e) { gust = null; nextGust = t + rnd(3.5, 8); return [0, 0]; }
+    if (s >= e) { gust = null; nextGust = t + rnd(2.5, 5.5); return [0, 0]; }
     const ss = x => x * x * (3 - 2 * x);
     const f = s < gust.rise ? ss(s / gust.rise) : s < gust.rise + gust.hold ? 1 : 1 - ss((s - gust.rise - gust.hold) / gust.fall);
     const m = f * gust.p * BEND;
